@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo 倒數計時器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 500px;
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 25px;
+      font-size: 28px;
+    }
+
+    .input-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+    }
+
+    .input-group {
+      margin-bottom: 12px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .datetime-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .datetime-row .input-group {
+      flex: 1;
+    }
+
+    .add-btn {
+      width: 100%;
+      padding: 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 5px;
+    }
+
+    .add-btn:hover {
+      background: #5568d3;
+    }
+
+    .add-btn:active {
+      transform: scale(0.98);
+    }
+
+    .tasks-section {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .task-card {
+      background: #ffffff;
+      border: 2px solid #e8e8e8;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 12px;
+      transition: all 0.3s;
+    }
+
+    .task-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .task-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      flex: 1;
+    }
+
+    .task-category {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: 10px;
+    }
+
+    .task-info {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .countdown {
+      font-size: 18px;
+      font-weight: 700;
+      color: #27ae60;
+      padding: 8px;
+      background: #e8f8f5;
+      border-radius: 6px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .countdown.expired {
+      color: #e74c3c;
+      background: #fadbd8;
+    }
+
+    .delete-btn {
+      width: 100%;
+      padding: 8px;
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .delete-btn:hover {
+      background: #ee5a52;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 40px 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⏰ Todo 倒數計時</h1>
+    
+    <div class="input-section">
+      <div class="input-group">
+        <label>任務名稱</label>
+        <input type="text" id="taskTitle" placeholder="輸入任務內容">
+      </div>
+
+      <div class="input-group">
+        <label>分類</label>
+        <input type="text" id="taskCategory" placeholder="例如：工作、學習、生活">
+      </div>
+
+      <div class="datetime-row">
+        <div class="input-group">
+          <label>到期日期</label>
+          <input type="date" id="taskDate">
+        </div>
+        <div class="input-group">
+          <label>到期時間</label>
+          <input type="time" id="taskTime">
+        </div>
+      </div>
+
+      <button class="add-btn" onclick="addTask()">新增任務</button>
+    </div>
+
+    <div class="tasks-section" id="tasksList">
+      <div class="empty-state">還沒有任務，快來新增一個吧！</div>
+    </div>
+  </div>
+
+  <script>
+    let tasks = [];
+
+    // 從 localStorage 載入任務
+    function loadTasks() {
+      const saved = localStorage.getItem('todoTasks');
+      if (saved) {
+        tasks = JSON.parse(saved);
+        renderTasks();
+      }
+    }
+
+    // 儲存到 localStorage
+    function saveTasks() {
+      localStorage.setItem('todoTasks', JSON.stringify(tasks));
+    }
+
+    // 新增任務
+    function addTask() {
+      const title = document.getElementById('taskTitle').value.trim();
+      const category = document.getElementById('taskCategory').value.trim();
+      const date = document.getElementById('taskDate').value;
+      const time = document.getElementById('taskTime').value;
+
+      if (!title) {
+        alert('請輸入任務名稱');
+        return;
+      }
+
+      if (!date || !time) {
+        alert('請選擇到期日期和時間');
+        return;
+      }
+
+      const deadline = new Date(date + 'T' + time);
+      
+      const task = {
+        id: Date.now(),
+        title: title,
+        category: category || '未分類',
+        deadline: deadline.getTime()
+      };
+
+      tasks.push(task);
+      saveTasks();
+      renderTasks();
+
+      // 清空輸入
+      document.getElementById('taskTitle').value = '';
+      document.getElementById('taskCategory').value = '';
+      document.getElementById('taskDate').value = '';
+      document.getElementById('taskTime').value = '';
+    }
+
+    // 刪除任務
+    function deleteTask(id) {
+      tasks = tasks.filter(task => task.id !== id);
+      saveTasks();
+      renderTasks();
+    }
+
+    // 計算剩餘時間
+    function getTimeRemaining(deadline) {
+      const now = new Date().getTime();
+      const distance = deadline - now;
+
+      if (distance < 0) {
+        return { expired: true, text: '已到期' };
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      let text = '';
+      if (days > 0) text += days + ' 天 ';
+      if (hours > 0) text += hours + ' 小時 ';
+      text += minutes + ' 分 ' + seconds + ' 秒';
+
+      return { expired: false, text: text };
+    }
+
+    // 渲染任務列表
+    function renderTasks() {
+      const container = document.getElementById('tasksList');
+      
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="empty-state">還沒有任務，快來新增一個吧！</div>';
+        return;
+      }
+
+      // 按到期時間排序
+      const sortedTasks = tasks.sort((a, b) => a.deadline - b.deadline);
+
+      container.innerHTML = sortedTasks.map(task => {
+        const deadline = new Date(task.deadline);
+        const dateStr = deadline.toLocaleDateString('zh-TW');
+        const timeStr = deadline.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+        
+        const remaining = getTimeRemaining(task.deadline);
+        const countdownClass = remaining.expired ? 'countdown expired' : 'countdown';
+
+        return `
+          <div class="task-card">
+            <div class="task-header">
+              <div class="task-title">${task.title}</div>
+              <div class="task-category">${task.category}</div>
+            </div>
+            <div class="task-info">📅 ${dateStr} ${timeStr}</div>
+            <div class="${countdownClass}" id="countdown-${task.id}">
+              ${remaining.text}
+            </div>
+            <button class="delete-btn" onclick="deleteTask(${task.id})">刪除任務</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 更新倒數計時
+    function updateCountdowns() {
+      tasks.forEach(task => {
+        const element = document.getElementById('countdown-' + task.id);
+        if (element) {
+          const remaining = getTimeRemaining(task.deadline);
+          element.textContent = remaining.text;
+          element.className = remaining.expired ? 'countdown expired' : 'countdown';
+        }
+      });
+    }
+
+    // 初始化
+    loadTasks();
+    
+    // 每秒更新倒數
+    setInterval(updateCountdowns, 1000);
+  </script>
+</body>
+</html>
